@@ -1,0 +1,20 @@
+Source: grub-btrfs
+Section: admin
+Priority: optional
+Maintainer: Ckrvxr <ckrvxr@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+Homepage: https://github.com/Antynea/grub-btrfs
+Vcs-Git: https://github.com/Ckrvxr/grub-btrfs-debian.git
+Vcs-Browser: https://github.com/Ckrvxr/grub-btrfs-debian
+
+Package: grub-btrfs
+Architecture: all
+Multi-Arch: foreign
+Depends: bash (>= 4.0), btrfs-progs, grub-common, inotify-tools, ${misc:Depends}
+Suggests: snapper | timeshift
+Description: boot into Btrfs snapshots from GRUB
+ grub-btrfs adds a submenu containing Btrfs snapshots to the GRUB boot menu.
+ It supports snapshots created manually or by snapper, Timeshift, and yabsnap,
+ and can automatically regenerate the GRUB menu when snapshots change.

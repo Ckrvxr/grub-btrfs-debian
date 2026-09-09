@@ -1,0 +1,8 @@
+.codespellrc
+.github/*
+Makefile
+grub-btrfsd.confd
+grub-btrfsd.initd
+initramfs/Arch Linux/*
+manpages/*.8.org
+temp/*

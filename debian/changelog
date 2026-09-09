@@ -1,0 +1,8 @@
+grub-btrfs (4.14-1) unstable; urgency=medium
+
+  * Add native Debian packaging for grub-btrfs.
+  * Install the GRUB script, daemon, systemd unit, configuration, and manpages.
+  * Add reproducible CI builds and GitHub Release publishing for Debian
+    packages.
+
+ -- Ckrvxr <ckrvxr@users.noreply.github.com>  Wed, 09 Sep 2026 13:30:00 +0800

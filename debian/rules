@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE ?= 1
+
+%:
+	dh $@
+
+# grub-btrfs is a collection of shell scripts and data files; there is no
+# compiler build step.  The package is assembled by dh_install from the
+# explicit file list in debian/grub-btrfs.install.
+override_dh_auto_clean:
+	:
+
+override_dh_auto_build:
+	:
+
+override_dh_auto_install:
+	:
+
+override_dh_install:
+	dh_install
+	install -d debian/grub-btrfs/usr/share/man/man8
+	install -m 0644 manpages/grub-btrfs.8.man debian/grub-btrfs/usr/share/man/man8/grub-btrfs.8
+	install -m 0644 manpages/grub-btrfsd.8.man debian/grub-btrfs/usr/share/man/man8/grub-btrfsd.8
+
+override_dh_auto_test:
+	bash -n 41_snapshots-btrfs grub-btrfsd
+	./41_snapshots-btrfs --version
+	./grub-btrfsd --help >/dev/null
+
+# The service is installed for users who want the snapshot watcher, but it is
+# deliberately not enabled or started automatically.  The default /.snapshots
+# path is optional and may not exist on the target system.
+override_dh_installsystemd:
+	dh_installsystemd --no-enable --no-start
+
+override_dh_missing:
+	dh_missing --fail-missing

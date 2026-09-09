@@ -1,0 +1,123 @@
+name: Debian package
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build and validate .deb
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Debian packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            build-essential \
+            debhelper \
+            debhelper-compat \
+            dpkg-dev \
+            fakeroot \
+            lintian \
+            shellcheck
+
+      - name: Check shell scripts and packaging metadata
+        run: |
+          bash -n 41_snapshots-btrfs grub-btrfsd debian/postinst debian/tests/smoke
+          shellcheck --severity=error 41_snapshots-btrfs grub-btrfsd
+          dpkg-parsechangelog --file debian/changelog --show-field Source
+          dpkg-parsechangelog --file debian/changelog --show-field Version
+
+      - name: Select package version
+        id: version
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          if [[ "$REF_TYPE" == tag ]]; then
+            version="${REF_NAME#v}"
+            if [[ "$REF_NAME" != v* || ! "$version" =~ ^[0-9][0-9A-Za-z.+:~-]*$ ]]; then
+              echo "Unsupported release tag: $REF_NAME" >&2
+              exit 1
+            fi
+          else
+            version="0.0~git$(date -u +%Y%m%d).${COMMIT_SHA:0:7}"
+          fi
+          if [[ "$version" =~ -[0-9]+$ ]]; then
+            debian_version="$version"
+          else
+            debian_version="${version}-1"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "debian_version=$debian_version" >> "$GITHUB_OUTPUT"
+          echo "Building grub-btrfs version $debian_version"
+
+      - name: Stamp package version
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.version }}
+          DEBIAN_VERSION: ${{ steps.version.outputs.debian_version }}
+        run: |
+          sed -i -E "1s/^grub-btrfs \([^)]*\)/grub-btrfs (${DEBIAN_VERSION})/" debian/changelog
+          sed -i "s/^GRUB_BTRFS_VERSION=.*/GRUB_BTRFS_VERSION=${PACKAGE_VERSION}/" config
+
+      - name: Build binary package
+        run: dpkg-buildpackage --build=binary --no-sign
+
+      - name: Validate package
+        run: |
+          mkdir -p artifacts
+          cp ../grub-btrfs_*.deb artifacts/
+          cp ../grub-btrfs_*.buildinfo ../grub-btrfs_*.changes artifacts/ 2>/dev/null || true
+          dpkg-deb --info artifacts/grub-btrfs_*.deb
+          dpkg-deb --contents artifacts/grub-btrfs_*.deb
+          lintian --fail-on error artifacts/grub-btrfs_*.deb
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: grub-btrfs-debian-${{ steps.version.outputs.version }}
+          path: artifacts/
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: grub-btrfs-debian-${{ needs.build.outputs.version }}
+          path: artifacts
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG_NAME" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG_NAME" artifacts/*.deb --repo "$REPOSITORY" --clobber
+          else
+            gh release create "$TAG_NAME" artifacts/*.deb \
+              --repo "$REPOSITORY" \
+              --verify-tag \
+              --title "$TAG_NAME" \
+              --generate-notes
+          fi

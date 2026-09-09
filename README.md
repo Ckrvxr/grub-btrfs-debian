@@ -57,6 +57,16 @@ apt install grub-btrfs
 ```
 Booting into read-only snapshots is fully supported when choosing btrfs as the file system during a standard Kali Linux installation following [this walk-through](https://www.kali.org/docs/installation/btrfs/).
 
+#### Debian and Ubuntu
+Pre-built Debian packages are attached to the [GitHub Releases](https://github.com/Ckrvxr/grub-btrfs-debian/releases) page. Download the package matching your release and install it with:
+```
+sudo apt install ./grub-btrfs_<version>_all.deb
+```
+The package installs the `grub-btrfsd` systemd unit but leaves it disabled by default. Configure `/etc/default/grub-btrfs/config` and enable the watcher when it is needed:
+```
+sudo systemctl enable --now grub-btrfsd
+```
+
 #### Manual installation
 * Run `make install`
 * Run `make help` to check what options are available. 

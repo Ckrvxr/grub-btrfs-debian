@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+test -x /etc/grub.d/41_snapshots-btrfs
+test -x /usr/bin/grub-btrfsd
+test -f /etc/default/grub-btrfs/config
+test -f /usr/lib/systemd/system/grub-btrfsd.service
+test -f /usr/share/man/man8/grub-btrfs.8.gz
+test -f /usr/share/man/man8/grub-btrfsd.8.gz
+
+/etc/grub.d/41_snapshots-btrfs --version >/dev/null
+/usr/bin/grub-btrfsd --help >/dev/null

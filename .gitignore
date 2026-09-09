@@ -1,0 +1,4 @@
+# Debian build artifacts
+*.deb
+*.buildinfo
+*.changes
